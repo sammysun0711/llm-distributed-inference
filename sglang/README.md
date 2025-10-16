@@ -51,7 +51,7 @@ cd ..
 TORCH_NCCL_HIGH_PRIORITY=1  RCCL_MSCCL_ENABLE=0  mpirun -np 16  --map-by ppr:8:node  --hostfile mpi_hosts  --allow-run-as-root  --mca pml ucx  --mca btl ^openib  -x NCCL_SOCKET_IFNAME=enp49s0f1np1  -x NCCL_DEBUG=VERSION  -x NCCL_IB_HCA=bnxt_re0,bnxt_re1,bnxt_re2,bnxt_re3,bnxt_re4,bnxt_re5,bnxt_re6,bnxt_re7,bnxt_re8  -x NCCL_IB_GID_INDEX=3  /workdir/rccl-tests/build/all_reduce_perf -b 1k -e 2G -f 2 -g 1
 ```
 
-### 9. Run Mooncake Transfer Engine Bench
+### 9. Run Mooncake Transfer Engine Bench with RDMA
 Build Mooncake
 ```bash 
 git clone https://github.com/kvcache-ai/Mooncake.git
@@ -59,11 +59,11 @@ cd Mooncake.git && git submodule update --init --recursive
 mkdir build && cd build 
 GO111MODULE=on cmake -DWITH_STORE=OFF -DUSE_ETCD=ON ..  && make -j8
 ```
-Run Mooncake Transfer Engine Bench with RDMA:
 
 Start etcd server
 ```bash
 MC_GID_INDEX=3 etcd --listen-client-urls http://10.2.96.23:2379 --advertise-client-urls http://10.2.96.23:2379 & 
+```
 
 Launch server
 ```bash
