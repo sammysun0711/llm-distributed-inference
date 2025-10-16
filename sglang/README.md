@@ -1,6 +1,6 @@
 # Setup Environment LLM distributed inference on 2 GPU nodes
+Scripts and tools for setup environment for SGLang PD disaggregation in docker container, verified on 2 8xMI325X gpu nodes.
 
-## Scripts and tools to setup SGLang PD disaggregation in docker container, need to setup in both 2 nodes.
 ### Reference:
 - [LLM distributed inference and PD disaggregation on AMD Instinct GPUs](https://rocm.docs.amd.com/projects/ai-developer-hub/en/latest/notebooks/inference/SGlang_PD_Disagg_On_AMD_GPU.html)
 - [Unleashing AMD Instinct™ MI300X GPUs for LLM Serving: Disaggregating Prefill & Decode with SGLang](https://rocm.blogs.amd.com/software-tools-optimization/disaggregation/README.html)
