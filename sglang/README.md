@@ -5,7 +5,7 @@ Scripts and tools for setup environment for SGLang PD disaggregation in docker c
 - [LLM distributed inference and PD disaggregation on AMD Instinct GPUs](https://rocm.docs.amd.com/projects/ai-developer-hub/en/latest/notebooks/inference/SGlang_PD_Disagg_On_AMD_GPU.html)
 - [Unleashing AMD Instinct™ MI300X GPUs for LLM Serving: Disaggregating Prefill & Decode with SGLang](https://rocm.blogs.amd.com/software-tools-optimization/disaggregation/README.html)
 
-### 1. Launch docker container
+### 1. Launch docker container (replace target docker image below)
 ```bash
 podman run --name rocm-sgl-dev-v0.5.2-rocm700-mi30x-20250915-rc-gpu4 -it --rm --device=/dev/dri --device=/dev/kfd --device=/dev/infiniband --device=/dev/infiniband/rdma_cm --privileged  --network=host --ipc=host --cap-add=SYS_ADMIN --cap-add=SYS_PTRACE   --security-opt seccomp=unconfined  --group-add keep-groups -v $HOME:/workdir --workdir /workdir docker://rocm/sgl-dev:v0.5.2-rocm700-mi30x-20250915-rc bash
 ```
@@ -25,6 +25,9 @@ podman run --name rocm-sgl-dev-v0.5.2-rocm700-mi30x-20250915-rc-gpu4 -it --rm --
 ./scripts/install_nic_rdma_driver.sh
 ```
 
+check RDMA nic status via `ibv_devices` and `rdma link show`.
+
+
 ### 5. Build and install the ROCm-aware UCX library
 ```bash
 source ./scripts/build_ucx.sh
@@ -40,7 +43,7 @@ Setup ssh connection for docker container on current node (gpu-8) to remote node
 ```bash
 ./scripts/setup_docker_passwdless_ssh.sh gpu-8
 ```
-Please note: need to manually copy public key to /root/.ssh/authorized_keys on remote GPU node.
+Please note: need to manually copy public key to /root/.ssh/authorized_keys on remote GPU node and vice versa.
 
 ### 8. Build and run RCCL test on 2 GPU nodes
 ```bash
@@ -51,14 +54,14 @@ cd rccl-tests
 ./install.sh --mpi --rocm_home "${ROCM_ROOT}" --rccl_home "${ROCM_ROOT}" --mpi_home /opt/ompi/ --hip_compiler "${HIP_COMPILER}"
 cd ..
 ```
-# Single node
+Single node rccl test
 ```bash
-TORCH_NCCL_HIGH_PRIORITY=1  RCCL_MSCCL_ENABLE=0 NCCL_DEBUG=version /opt/ompi/bin/mpirun --allow-run-as-root -np 8 /workdir/rccl-tests/build/all_reduce_perf -b 1G -e 16G -f 2 -g 1 -n 10
+NCCL_DEBUG=version /opt/ompi/bin/mpirun -np 8 --allow-run-as-root /workdir/rccl-tests/build/all_reduce_perf -b 1G -e 16G -f 2 -g 1 -n 10
 ```
 
-# Multi node
+Multi node rccl test
 ```bash
-TORCH_NCCL_HIGH_PRIORITY=1  RCCL_MSCCL_ENABLE=0  /opt/ompi/bin/mpirun  --allow-run-as-root -H gpu-23:8,gpu-8:8 --mca pml ucx --mca btl ^openib -x LD_LIBRARY_PATH -x UCX_IB_GID_INDEX=3 -x NCCL_IB_GID_INDEX=3 -x NCCL_NET_GDR_LEVEL=3 -x NCCL_IB_HCA=bnxt_re0,bnxt_re1,bnxt_re2,bnxt_re3,bnxt_re4,bnxt_re5,bnxt_re6,bnxt_re7,bnxt_re8 -x UCX_NET_DEVICES=bnxt_re0,bnxt_re1,bnxt_re2,bnxt_re3,bnxt_re4,bnxt_re5,bnxt_re6,bnxt_re7,bnxt_re8 -x NCCL_ALGO=Ring -x NCCL_SOCKET_IFNAME=enp49s0f1np1 /workdir/rccl-tests/build/all_reduce_perf -b 1G -e 16G -f 2 -g 1 -n 10
+NCCL_DEBUG=version /opt/ompi/bin/mpirun -np 16 --allow-run-as-root -H gpu-23:8,gpu-8:8 --mca pml ucx --mca btl ^openib -x LD_LIBRARY_PATH -x UCX_IB_GID_INDEX=3 -x NCCL_IB_GID_INDEX=3 -x NCCL_NET_GDR_LEVEL=3 -x NCCL_IB_HCA=bnxt_re0,bnxt_re1,bnxt_re2,bnxt_re3,bnxt_re4,bnxt_re5,bnxt_re6,bnxt_re7,bnxt_re8 -x UCX_NET_DEVICES=bnxt_re0,bnxt_re1,bnxt_re2,bnxt_re3,bnxt_re4,bnxt_re5,bnxt_re6,bnxt_re7,bnxt_re8 -x NCCL_ALGO=Ring -x NCCL_SOCKET_IFNAME=enp49s0f1np1 /workdir/rccl-tests/build/all_reduce_perf -b 1G -e 16G -f 2 -g 1 -n 10
 ```
 
 ### 9. Run Mooncake Transfer Engine Bench with RDMA
@@ -81,6 +84,6 @@ MC_GID_INDEX=3 ./mooncake-transfer-engine/example/transfer_engine_bench --mode=t
 ```
 
 Launch client
-```bash 
+```bash
 MC_TE_METRIC=1 MC_GID_INDEX=3 ./mooncake-transfer-engine/example/transfer_engine_bench --metadata_server=10.2.96.23:2379 --local_server_name=10.2.96.23:33333 --segment_id=10.2.96.23:22222 --protocol=rdma --device_name=bnxt_re0 --block_size=16384 --duration 60
 ```
