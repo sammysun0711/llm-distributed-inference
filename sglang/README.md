@@ -17,7 +17,7 @@ podman run --name rocm-sgl-dev-v0.5.2-rocm700-mi30x-20250915-rc-gpu4 -it --rm --
 
 ### 3. Install Mooncake for KV cache transfer between nodes
 ```bash
-./scripts/install_nic_rdma_driver.sh
+./scripts/install_mooncake.sh
 ```
 
 ### 4. Install the NIC RDMA driver (Broadcom Thor2/BCM‑57608)
@@ -36,19 +36,29 @@ source ./scripts/build_ompi.sh
 ```
 
 ### 7. Setup SSH for docker container on multi GPU node
-Setup ssh connection for docker container on current node (gpu-4) to remote node (gpu-11)
+Setup ssh connection for docker container on current node (gpu-8) to remote node (gpu-23)
 ```bash
-./scripts/setup_docker_passwdless_ssh.sh gpu-11
+./scripts/setup_docker_passwdless_ssh.sh gpu-8
 ```
 Please note: need to manually copy public key to /root/.ssh/authorized_keys on remote GPU node.
 
 ### 8. Build and run RCCL test on 2 GPU nodes
 ```bash
+ROCM_ROOT="$(./scripts/resolve_rocm_root.sh)"
+HIP_COMPILER="${ROCM_ROOT}/bin/hipcc"
 git clone https://github.com/ROCm/rccl-tests
 cd rccl-tests
-./install.sh --mpi --rocm_home /opt/rocm --rccl_home /opt/rocm --mpi_home /opt/ompi/ --hip_compiler /opt/rocm/bin/amdclang++
+./install.sh --mpi --rocm_home "${ROCM_ROOT}" --rccl_home "${ROCM_ROOT}" --mpi_home /opt/ompi/ --hip_compiler "${HIP_COMPILER}"
 cd ..
-TORCH_NCCL_HIGH_PRIORITY=1  RCCL_MSCCL_ENABLE=0  mpirun -np 16  --map-by ppr:8:node  --hostfile mpi_hosts  --allow-run-as-root  --mca pml ucx  --mca btl ^openib  -x NCCL_SOCKET_IFNAME=enp49s0f1np1  -x NCCL_DEBUG=VERSION  -x NCCL_IB_HCA=bnxt_re0,bnxt_re1,bnxt_re2,bnxt_re3,bnxt_re4,bnxt_re5,bnxt_re6,bnxt_re7,bnxt_re8  -x NCCL_IB_GID_INDEX=3  /workdir/rccl-tests/build/all_reduce_perf -b 1k -e 2G -f 2 -g 1
+```
+# Single node
+```bash
+TORCH_NCCL_HIGH_PRIORITY=1  RCCL_MSCCL_ENABLE=0 NCCL_DEBUG=version /opt/ompi/bin/mpirun --allow-run-as-root -np 8 /workdir/rccl-tests/build/all_reduce_perf -b 1G -e 16G -f 2 -g 1 -n 10
+```
+
+# Multi node
+```bash
+TORCH_NCCL_HIGH_PRIORITY=1  RCCL_MSCCL_ENABLE=0  /opt/ompi/bin/mpirun  --allow-run-as-root -H gpu-23:8,gpu-8:8 --mca pml ucx --mca btl ^openib -x LD_LIBRARY_PATH -x UCX_IB_GID_INDEX=3 -x NCCL_IB_GID_INDEX=3 -x NCCL_NET_GDR_LEVEL=3 -x NCCL_IB_HCA=bnxt_re0,bnxt_re1,bnxt_re2,bnxt_re3,bnxt_re4,bnxt_re5,bnxt_re6,bnxt_re7,bnxt_re8 -x UCX_NET_DEVICES=bnxt_re0,bnxt_re1,bnxt_re2,bnxt_re3,bnxt_re4,bnxt_re5,bnxt_re6,bnxt_re7,bnxt_re8 -x NCCL_ALGO=Ring -x NCCL_SOCKET_IFNAME=enp49s0f1np1 /workdir/rccl-tests/build/all_reduce_perf -b 1G -e 16G -f 2 -g 1 -n 10
 ```
 
 ### 9. Run Mooncake Transfer Engine Bench with RDMA

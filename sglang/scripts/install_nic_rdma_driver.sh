@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo -e "\n\n============Installing required pkgs============\n\n"
-apt -y install libelf-dev
+apt-get update -y && apt -y install libelf-dev unzip ibverbs-utils
 
 wget https://docs.broadcom.com/docs-and-downloads/ethernet-network-adapters/NXE/Thor2/GCA2/bcm5760x_231.2.63.0a.zip
 unzip -o bcm5760x_231.2.63.0a.zip
